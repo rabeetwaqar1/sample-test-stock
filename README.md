@@ -1,13 +1,13 @@
-** STOCK CHECKER **
+# STOCK CHECKER
 
-<sup>Installation</sup>
+## Installation
 
 ```
 npm i -g typescript
 npm i
 ```
 
-<sup>Run Test Cases</sup>
+## Run Test Cases
 
 ```
 npm test
