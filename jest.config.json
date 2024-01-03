@@ -1,0 +1,18 @@
+{
+    "bail": 1,
+    "verbose": true,
+    "collectCoverage": true,
+    "roots": [
+        "<rootDir>/src"
+    ],
+    "testMatch": [
+        "**/__tests__/**/*.+(ts|tsx|js)",
+        "**/?(*.)+(spec|test).+(ts|tsx|js)"
+    ],
+    "transform": {
+        "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "testPathIgnorePatterns": [
+        "/node_modules/"
+    ]
+}
