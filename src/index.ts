@@ -27,7 +27,7 @@ class StockChecker {
     run = async () => {
         try {
     
-            const stockHashMap: any = [];
+            const stockHashMap: any = {};
     
             const stockFileContent = await this.getFileContent(process.env.STOCK_FILE_NAME);
     
