@@ -1,79 +1,73 @@
-import fs from 'fs/promises';
-import path from 'path';
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
+import { getFileContent, validateFileContent } from "./helpers";
 
 class StockChecker {
+  private matched: any = [];
+  private notMatched: any = [];
 
-    private matched: any = [];
-    private notMatched: any = [];
+  constructor() {}
 
-    constructor() {}
+  run = async () => {
+    try {
+      const stockHashMap: any = {};
 
-    getFileContent = async (filename: any) => {
-        const content = await fs.readFile(path.resolve(filename)).catch((err) => {
-            throw new Error(`${filename} - Error (${err})`);
-        }) || null;
+      const stockFileContent = await getFileContent(process.env.STOCK_FILE);
 
-        return content ? JSON.parse(content?.toString()) : null;
-    }
+      const stockFileValidation = validateFileContent(stockFileContent);
 
-    validateFileContent = async (content: object | string | null | undefined) => {
-        if (!content) return false;
-        if (!Array.isArray(content)) return false;
-        return true;
-    }
+      if (!stockFileValidation) {
+        throw new Error(
+          `${process.env.STOCK_FILE} - something went wrong reading the file content!`
+        );
+      }
 
-    run = async () => {
-        try {
-    
-            const stockHashMap: any = {};
-    
-            const stockFileContent = await this.getFileContent(process.env.STOCK_FILE_NAME);
-    
-            const stockFileValidation = await this.validateFileContent(stockFileContent);
-    
-            if (!stockFileValidation) {
-                throw new Error(`${process.env.STOCK_FILE_NAME} - something went wrong reading the file content!`);
-            }
-    
-            const transFileContent = await this.getFileContent(process.env.TRANSACTIONS_FILE_NAME);
-    
-            const transFileValidation = await this.validateFileContent(transFileContent);
-    
-            if (!transFileValidation) {
-                throw new Error(`${process.env.TRANSACTIONS_FILE_NAME} - something went wrong reading the file content!`);
-            }
-    
-            for (let i = 0; i < stockFileContent.length; i++) {
-                const sku = stockFileContent[i]?.sku?.trim();
-                if (!stockHashMap[sku]) {
-                    stockHashMap[sku] = stockFileContent[i];
-                }
-            }
+      const transFileContent = await getFileContent(
+        process.env.TRANSACTIONS_FILE
+      );
 
-            for (let k = 0; k < transFileContent.length; k++) {
-                const sku = transFileContent[k]?.sku?.trim();
-                const stockObject = { ...transFileContent[k], stock: stockHashMap[sku] || {} };
-                if (stockHashMap[sku]) {
-                    this.matched.push(stockObject);
-                } else {
-                    this.notMatched.push({ error: 'STOCK_NOT_FOUND_FOR_TRANSACTION', stockObject });
-                }
-            }
+      const transFileValidation = validateFileContent(transFileContent);
 
-        } catch (err) {
-            throw new Error(`Error occurred - ${err}`);
+      if (!transFileValidation) {
+        throw new Error(
+          `${process.env.TRANSACTIONS_FILE} - something went wrong reading the file content!`
+        );
+      }
+
+      for (let i = 0; i < stockFileContent.length; i++) {
+        const sku = stockFileContent[i]?.sku?.trim();
+        if (!stockHashMap[sku]) {
+          stockHashMap[sku] = stockFileContent[i];
         }
-    }
+      }
 
-    getMatchedSkus() {
-        return this.matched;
+      for (let k = 0; k < transFileContent.length; k++) {
+        const sku = transFileContent[k]?.sku?.trim();
+        const stockObject = {
+          ...transFileContent[k],
+          stock: stockHashMap[sku] || {},
+        };
+        if (stockHashMap[sku]) {
+          this.matched.push(stockObject);
+        } else {
+          this.notMatched.push({
+            error: "STOCK_NOT_FOUND_FOR_TRANSACTION",
+            stockObject,
+          });
+        }
+      }
+    } catch (err) {
+      throw new Error(`Error occurred - ${err}`);
     }
+  };
 
-    getNotMatchedSkus() {
-        return this.notMatched;
-    }
+  getMatchedSkus() {
+    return this.matched;
+  }
+
+  getNotMatchedSkus() {
+    return this.notMatched;
+  }
 }
 
 export default StockChecker;
