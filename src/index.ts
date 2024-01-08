@@ -1,20 +1,24 @@
 import dotenv from "dotenv";
 dotenv.config();
-import { getFileContent, validateFileContent } from "./helpers";
+import { getFileContent, validateFileContent, validateSku } from "./helpers";
+import { get } from "http";
 
 class StockChecker {
-  private matched: any = [];
-  private notMatched: any = [];
-
+  private givenSku: string | null = process.env?.GIVEN_SKU || null;
+  public stockFileContent: any = null;
+  public transFileContent: any = null;
+  public currentStockLevel: number = 0;
   constructor() {}
 
   run = async () => {
     try {
-      const stockHashMap: any = {};
+      if (!validateSku(this.givenSku)) {
+        throw new Error("NO_SKU_FOUND");
+      }
 
-      const stockFileContent = await getFileContent(process.env.STOCK_FILE);
+      this.stockFileContent = await getFileContent(process.env?.STOCK_FILE);
 
-      const stockFileValidation = validateFileContent(stockFileContent);
+      const stockFileValidation = validateFileContent(this.stockFileContent);
 
       if (!stockFileValidation) {
         throw new Error(
@@ -22,51 +26,55 @@ class StockChecker {
         );
       }
 
-      const transFileContent = await getFileContent(
-        process.env.TRANSACTIONS_FILE
+      this.transFileContent = await getFileContent(
+        process.env?.TRANSACTIONS_FILE
       );
 
-      const transFileValidation = validateFileContent(transFileContent);
+      const transFileValidation = validateFileContent(this.transFileContent);
 
       if (!transFileValidation) {
         throw new Error(
-          `${process.env.TRANSACTIONS_FILE} - something went wrong reading the file content!`
+          `${process.env?.TRANSACTIONS_FILE} - something went wrong reading the file content!`
         );
       }
 
-      for (let i = 0; i < stockFileContent.length; i++) {
-        const sku = stockFileContent[i]?.sku?.trim();
-        if (!stockHashMap[sku]) {
-          stockHashMap[sku] = stockFileContent[i];
-        }
+      const stockObject = this.getSkuObject(this.stockFileContent);
+
+      if (!stockObject) {
+        throw new Error("STOCK_NOT_FOUND_FOR_GIVEN_SKU_IN_STOCKS_FILE");
       }
 
-      for (let k = 0; k < transFileContent.length; k++) {
-        const sku = transFileContent[k]?.sku?.trim();
-        const stockObject = {
-          ...transFileContent[k],
-          stock: stockHashMap[sku] || {},
-        };
-        if (stockHashMap[sku]) {
-          this.matched.push(stockObject);
-        } else {
-          this.notMatched.push({
-            error: "STOCK_NOT_FOUND_FOR_TRANSACTION",
-            stockObject,
-          });
-        }
+      const transObject = this.getSkuObject(this.transFileContent);
+
+      if (!transObject) {
+        throw new Error("STOCK_NOT_FOUND_FOR_GIVEN_SKU_IN_TRANS_FILE");
       }
-    } catch (err) {
-      throw new Error(`Error occurred - ${err}`);
+
+      const mergedData = { ...stockObject, ...transObject };
+      this.currentStockLevel = mergedData?.stock || 0;
+
+      return "SUCCESS";
+    } catch (err: any) {
+      throw new Error(err?.message);
     }
   };
 
-  getMatchedSkus() {
-    return this.matched;
+  getCurrentStockLevel() {
+    return this.currentStockLevel;
   }
 
-  getNotMatchedSkus() {
-    return this.notMatched;
+  getSkuObject(fileContent: any) {
+    return fileContent.find((row: { sku: (string | null)[] }) =>
+      row?.sku?.includes(this.givenSku)
+    );
+  }
+
+  getStockFileContent() {
+    return this.stockFileContent;
+  }
+
+  getTransFileContent() {
+    return this.transFileContent;
   }
 }
 

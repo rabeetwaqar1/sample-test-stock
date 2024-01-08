@@ -17,3 +17,9 @@ export const validateFileContent = (
   if (!Array.isArray(content)) return false;
   return true;
 };
+
+export const validateSku = (sku: string | null | undefined) => {
+  if (!sku) return false;
+  if (!isNaN(Number(sku))) return false;
+  return true;
+};

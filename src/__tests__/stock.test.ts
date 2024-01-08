@@ -2,53 +2,67 @@ import StockChecker from "../index";
 import { describe, expect, test } from "@jest/globals";
 import dotenv from "dotenv";
 dotenv.config();
-import { getFileContent, validateFileContent } from "../helpers";
+import { getFileContent, validateFileContent, validateSku } from "../helpers";
 const stockChecker = new StockChecker();
+
+describe("it should validate the given sku is provided in string or not", () => {
+  test("it should validate the given sku is provided in string or not", async () => {
+    expect(validateSku(process.env?.GIVEN_SKU)).toBe(true);
+  });
+});
 
 describe("it should validate the STOCK file content must be present", () => {
   test("if the file contains the json and must not empty", async () => {
-    expect(await getFileContent(process.env.STOCK_FILE)).toBeDefined();
+    expect(await getFileContent(process.env?.STOCK_FILE)).toBeDefined();
   });
 });
 
 describe("it should validate the TRANSACTIONS file content must be present", () => {
   test("if the file contains the json and must not empty", async () => {
-    expect(await getFileContent(process.env.TRANSACTIONS_FILE)).toBeDefined();
+    expect(await getFileContent(process.env?.TRANSACTIONS_FILE)).toBeDefined();
+  });
+});
+
+describe("it should validate this method should return SUCCESS", () => {
+  test("it should validate this method should return SUCCESS", async () => {
+    expect(await stockChecker.run()).toBe("SUCCESS");
   });
 });
 
 describe("it should validate that the STOCK FILE must contain an array and content is present", () => {
   test("it should validate that the STOCK FILE must return boolean true", async () => {
-    const fileContent = await getFileContent(process.env.STOCK_FILE);
-    expect(validateFileContent(fileContent)).toBe(true);
+    expect(validateFileContent(stockChecker.getStockFileContent())).toBe(true);
   });
 });
 
 describe("it should validate that the TRANSACTIONS FILE must contain an array and content is present", () => {
   test("it should validate that the TRANSACTIONS FILE must return boolean true", async () => {
-    const fileContent = await getFileContent(process.env.TRANSACTIONS_FILE);
-    expect(validateFileContent(fileContent)).toBe(true);
+    expect(validateFileContent(stockChecker.getTransFileContent())).toBe(true);
   });
 });
 
-describe("it should check for each MATCHED sku that the stock value must be defined", () => {
-  test("it should check for each MATCHED sku that the stock value must be defined", async () => {
-    await stockChecker.run();
-
-    const matchedSkus = stockChecker.getMatchedSkus();
-
-    matchedSkus.forEach((row: any) => {
-      expect(row?.stock).toBeDefined();
-    });
+describe("it should validate the STOCK-FILE-CONTENT stockObject is found for the given sku", () => {
+  test("it should validate the stockObject is found or not for the given sku", async () => {
+    expect(
+      stockChecker.getSkuObject(stockChecker.getStockFileContent())
+    ).toBeDefined();
   });
 });
 
-describe("it should throw error for each NON-MATCHED sku", () => {
-  test("it should throw an error for each NON-MATCHED sku", async () => {
-    const notMatchedSkus = stockChecker.getNotMatchedSkus();
+describe("it should validate the TRANSCTIONS-FILE-CONTENT transObject is found for the given sku", () => {
+  test("it should validate the transObject is found or not for the given sku", async () => {
+    expect(
+      stockChecker.getSkuObject(stockChecker.getTransFileContent())
+    ).toBeDefined();
+  });
+});
 
-    notMatchedSkus.forEach((row: any) => {
-      expect(row.error).toBe("STOCK_NOT_FOUND_FOR_TRANSACTION");
-    });
+describe("it should return the current stock level for the given sku", () => {
+  test(`it should return the current stock level for the given sku -> ${process.env.GIVEN_SKU}`, async () => {
+    console.log(
+      `Current Stock Level For GIVEN_SKU(${process.env.GIVEN_SKU})`,
+      stockChecker.getCurrentStockLevel()
+    );
+    expect(stockChecker.getCurrentStockLevel()).toBeDefined();
   });
 });
