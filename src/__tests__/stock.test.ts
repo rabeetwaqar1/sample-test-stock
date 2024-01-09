@@ -43,18 +43,14 @@ describe("it should validate that the TRANSACTIONS FILE must contain an array an
 });
 
 describe("it should validate the STOCK-FILE-CONTENT stockObject is found for the given sku", () => {
-  test("it should validate the stockObject is found or not for the given sku", () => {
-    expect(
-      stockChecker.getSkuObject(stockChecker.getStockFileContent())
-    ).toBeDefined();
+  test("it should validate the stockObject is found for the given sku", () => {
+    expect(stockChecker.getStock()).toBeInstanceOf(Object);
   });
 });
 
-describe("it should validate the TRANSCTIONS-FILE-CONTENT transObject is found for the given sku", () => {
-  test("it should validate the transObject is found or not for the given sku", () => {
-    expect(
-      stockChecker.getSkuObject(stockChecker.getTransFileContent())
-    ).toBeDefined();
+describe("it should validate the TRANSCTIONS-FILE-CONTENT transactions are found for the given sku", () => {
+  test("it should validate the transactions are found for the given sku", () => {
+    expect(stockChecker.getTransactions()).toBeInstanceOf(Array);
   });
 });
 

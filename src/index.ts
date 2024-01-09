@@ -1,12 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { getFileContent, validateFileContent, validateSku } from "./helpers";
+import { Console } from "console";
 
 class StockChecker {
   private givenSku: string | null = null;
-  public stockFileContent: any = null;
-  public transFileContent: any = null;
-  public currentStockLevel: number = 0;
+  private stockFileContent: any = null;
+  private transFileContent: any = null;
+  private currentStockLevel: number = 0;
+  private mergedObject: any = {};
   constructor() {}
 
   run = async (sku: string | null) => {
@@ -39,20 +41,36 @@ class StockChecker {
         );
       }
 
-      const stockObject = this.getSkuObject(this.stockFileContent);
+      const stockObject = this.getStock();
 
       if (!stockObject) {
         throw new Error("STOCK_NOT_FOUND_FOR_GIVEN_SKU_IN_STOCKS_FILE");
       }
 
-      const transObject = this.getSkuObject(this.transFileContent);
+      const transactions = this.getTransactions();
 
-      if (!transObject) {
-        throw new Error("STOCK_NOT_FOUND_FOR_GIVEN_SKU_IN_TRANS_FILE");
+      if (!transactions?.length) {
+        throw new Error("TRANSACTIONS_NOT_FOUND_FOR_GIVEN_SKU_IN_TRANS_FILE");
       }
 
-      const mergedData = { ...stockObject, ...transObject };
-      this.currentStockLevel = mergedData?.stock || 0;
+      const stockLevel = Number(stockObject?.stock) || 0;
+
+      if (!stockLevel) {
+        throw new Error("STOCK_LEVEL_NOT_FOUND_FOR_GIVEN_SKU");
+      }
+
+      const purchaseQty = this.getQuantityByOrderType("order");
+      const refundQty = this.getQuantityByOrderType("refund");
+
+      if (purchaseQty > stockLevel) {
+        throw new Error("PURCHASE_QUANTITY_IS_GREATOR_THAN_STOCK_LEVELS");
+      }
+
+      this.currentStockLevel = this.calculateStockLevels(
+        stockLevel,
+        purchaseQty,
+        refundQty
+      );
 
       return "SUCCESS";
     } catch (err: any) {
@@ -60,12 +78,39 @@ class StockChecker {
     }
   };
 
+  calculateStockLevels(
+    currentStock: number,
+    purchaseQty: number,
+    refundQty: number
+  ) {
+    const refunded = Number(
+      refundQty > 0 ? currentStock + refundQty : currentStock
+    );
+    const stock = Number(refunded > 0 ? refunded - purchaseQty : currentStock);
+    return stock ?? currentStock;
+  }
+
+  getQuantityByOrderType(orderType: string) {
+    return this.getTransactions().reduce((acc: any, record: any) => {
+      if (record?.type?.includes(orderType)) {
+        return acc + (record?.qty || 0);
+      }
+      return acc;
+    }, 0);
+  }
+
   getCurrentStockLevel() {
     return this.currentStockLevel;
   }
 
-  getSkuObject(fileContent: any) {
-    return fileContent.find((row: { sku: (string | null)[] }) =>
+  getTransactions() {
+    return this.getTransFileContent().filter(
+      (row: { sku: (string | null)[] }) => row?.sku?.includes(this.givenSku)
+    );
+  }
+
+  getStock() {
+    return this.getStockFileContent().find((row: { sku: (string | null)[] }) =>
       row?.sku?.includes(this.givenSku)
     );
   }
