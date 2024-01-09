@@ -1,17 +1,18 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { getFileContent, validateFileContent, validateSku } from "./helpers";
-import { get } from "http";
 
 class StockChecker {
-  private givenSku: string | null = process.env?.GIVEN_SKU || null;
+  private givenSku: string | null = null;
   public stockFileContent: any = null;
   public transFileContent: any = null;
   public currentStockLevel: number = 0;
   constructor() {}
 
-  run = async () => {
+  run = async (sku: string | null) => {
     try {
+      this.givenSku = sku;
+
       if (!validateSku(this.givenSku)) {
         throw new Error("NO_SKU_FOUND");
       }
