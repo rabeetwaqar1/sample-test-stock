@@ -7,8 +7,8 @@ npm i -g typescript
 npm i
 ```
 
-## Run Test Cases
+## Build & Test
 
 ```
-npm test
+npm run build
 ```
